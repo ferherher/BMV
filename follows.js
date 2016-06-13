@@ -2,7 +2,7 @@
 
 	var key		= 'vTij3orvHd4oT7dl31HQXaNFap85row4X9CbqD79tSEV8e7b', // Unique master Xively API key to be used as a default
 		TH_feed	= '2029082394', // Comma separated array of Xively Feed ID numbers
-		TH_datastreams	= ['Exterior','Temperature','Calorifier'],
+		TH_datastreams	= ['V','I','CE','P','SOC'],
 		dataDuration	= '1day', // Default duration of data to be displayed // ref: https://xively.com/dev/docs/api/data/read/historical_data/
 		dataInterval	= 60;// Default interval for data to be displayed (in seconds)
 // Function Declarations
