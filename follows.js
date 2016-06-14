@@ -2,7 +2,7 @@
 
 	var key		= 'vTij3orvHd4oT7dl31HQXaNFap85row4X9CbqD79tSEV8e7b', // Unique master Xively API key to be used as a default
 		TH_feed	= '2029082394', 
-		TH_datastreams	= ['Exterior','Saloon','BackCabin','Bathroom','WaterTank','Engine','Calorifier','Fridge','Freezer'], 
+		TH_datastreams	= ['V','I','SOC','P','CE'], 
 		dataDuration	= '2days', 
 		dataInterval	= 900;  
 		dataDurationButtonID		= "myButton2Day";
@@ -29,7 +29,7 @@ var w = window,
 
 	// adding font size
 	var legendElement = document.querySelector("#legend");
-	var valuesFontSize = Math.floor(x/26);
+	var valuesFontSize = Math.min(50,Math.floor(x/26));
 	legendElement.style.height =  (x*0.065*2+valuesFontSize).toString() + "px" ;
 	legendElement.style.fontSize =  valuesFontSize.toString() + "px" ;
 
@@ -114,7 +114,15 @@ var w = window,
 		var dateString = myDate.format('D, d M y, H:i');
 		return dateString;
 		}
-	
+		
+	var scales = {
+		"V": [9, 17],
+		"I": [-100, 100],
+		"P": [-400, 400],
+		"CE": [-500, 0],
+		"SOC": [0, 100],
+		}
+		
 	mySeries = new Array();
 	function createGraph() {
 		var interval = setInterval(function(){
@@ -136,12 +144,13 @@ var w = window,
 				legendDate.style.margin =  ("0 0 0"  + (valuesFontSize/4).toString() + "px") ;
 				legend.appendChild(legendDate);
 				myFinalSeries = new Array();
+				myFinalScales = new Array();
 				TH_datastreams.forEach(function(datastreamName){
 					mySeries.forEach(function(thisSeries) {
 						if (thisSeries.name == datastreamName && thisSeries.data.length >= 50){
-							myFinalSeries.push(thisSeries)
-							console.log(thisSeries.name)
-							console.log(thisSeries.data)
+							myFinalSeries.push(thisSeries);
+							myFinalScales.push(thisSeries.scale);
+							console.log(thisSeries.name);
 							var thisTemp = [];
 							thisSeries.data.forEach(function(thisData) {
 								allTemps.push(thisData.y);
@@ -170,8 +179,8 @@ var w = window,
 							swatch.className = 'swatch';
 							swatch.style.backgroundColor = thisSeries.color;
 							swatch.innerHTML =  thisSeriesName;
-							swatch.style.width  = (x*0.05).toString() + "px" ;
-							swatch.style.height = (x*0.05).toString() + "px" ;
+							swatch.style.width  = Math.min(50,(x*0.05).toString()) + "px" ;
+							swatch.style.height = Math.min(50,(x*0.05).toString()) + "px" ;
 							
 							
 							var Tvalue = document.createElement('div');
@@ -226,17 +235,26 @@ var w = window,
 					height: y*0.5,
 					renderer: 'line',
 					interpolation: 'linear',
-					min: minVal - 1,
 					padding: {
 						top: 0.02,
 						right: 0.02,
 						bottom: 0.02,
 						left: 0.02
 						},
-					series: myFinalSeries
+					series: myFinalSeries,
 				});
-				
+			
 				graph.render();
+				
+				myFinalSeries.forEach(function(thisSeries) {
+					new Rickshaw.Graph.Axis.Y.Scaled({
+										scale: thisSeries.scale,
+										graph: graph,
+									});
+							
+				});
+							
+				graph.update();
 				
 				
 				var Hover = Rickshaw.Class.create(Rickshaw.Graph.HoverDetail, {
@@ -325,6 +343,9 @@ var w = window,
 		}, 500);
 	}
 
+
+		
+	
 	function updateFeeds(feedId, datastreamIds, duration, interval) {
 
 		xively.feed.get(feedId, function(feedData) {
@@ -361,18 +382,11 @@ var w = window,
 								}
 								var mycolor = 'steelblue'
 								var myrenderer = 'line'
-								if(datastream.id ==  'Saloon') {mycolor = '#FFD462'; myrenderer = 'line'}
-								if(datastream.id ==  'BackCabin') {mycolor = '#FC7D49'; myrenderer = 'line'}
-								if(datastream.id ==  'Bathroom') {mycolor = '#CF423C'; myrenderer = 'line'}
-								if(datastream.id ==  'WaterTank') {mycolor = '#2F9C9E'; myrenderer = 'line'}
-								
-								if(datastream.id ==  'Exterior') {mycolor = '#74AFE3'; myrenderer = 'line'}
-								
-								if(datastream.id ==  'Calorifier') {mycolor = '#FFFA7A'; myrenderer = 'line'}
-								if(datastream.id ==  'Engine') {mycolor = '#48995C'; myrenderer = 'line'}
-								if(datastream.id ==  'Freezer') {mycolor = '#004C66'; myrenderer = 'line'}
-								if(datastream.id ==  'Fridge') {mycolor = '#1760FF'; myrenderer = 'line'}
-								if(datastream.id ==  'Temperature') {mycolor = '#3F0B1B'; myrenderer = 'line'}
+								if(datastream.id ==  'V') {mycolor = '#FFD462'; myrenderer = 'line'}
+								if(datastream.id ==  'I') {mycolor = '#2F9C9E'; myrenderer = 'line'}
+								if(datastream.id ==  'P') {mycolor = '#FC7D49'; myrenderer = 'line'}
+								if(datastream.id ==  'CE') {mycolor = '#48995C'; myrenderer = 'line'}
+								if(datastream.id ==  'SOC') {mycolor = '#1760FF'; myrenderer = 'line'}
 								//B82A64					
 								
 								
@@ -382,7 +396,11 @@ var w = window,
 										data: points,
 										color: mycolor,
 										renderer : myrenderer,
+										scale: d3.scale.linear().domain(scales[datastream.id]).nice(),
+										
 								});
+								
+								
 								console.log('Datastream requested! (' + datastream.id + ')');
 							});
 						//} else {
