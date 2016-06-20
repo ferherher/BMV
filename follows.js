@@ -2,7 +2,7 @@
 
 	var key		= 'vTij3orvHd4oT7dl31HQXaNFap85row4X9CbqD79tSEV8e7b', // Unique master Xively API key to be used as a default
 		TH_feed	= '2029082394', 
-		TH_datastreams	= ['V','I','SOC','P','CE'], 
+		TH_datastreams	= ['V','I','SOC','CE'], 
 		dataDuration	= '2days', 
 		dataInterval	= 900;  
 		dataDurationButtonID		= "myButton2Day";
@@ -32,15 +32,15 @@ var w = window,
 	var valuesFontSize = Math.min(50,Math.floor(x/26));
 	legendElement.style.height =  (x*0.065*2+valuesFontSize).toString() + "px" ;
 	legendElement.style.fontSize =  valuesFontSize.toString() + "px" ;
-
 	
+
 	// Graph Annotations
 	function addAnnotation(force) {
 		if (messages.length > 0 && (force || Math.random() >= 0.95)) {
 			annotator.add(seriesData[2][seriesData[2].length-1].x, messages.shift());
 		}
 	}
-
+	
 	// Add One (1) Day to Date Object
 	Date.prototype.addDays = function (d) {
 		if (d) {
@@ -116,12 +116,12 @@ var w = window,
 		}
 		
 	var scales = {
-		"V": [9, 17],
-		"I": [-100, 100],
-		"P": [-400, 400],
-		"CE": [-500, 0],
-		"SOC": [0, 100],
+		"V":   d3.scale.linear().domain([9, 17]).nice(),
+		"I":   d3.scale.linear().domain([-100, 100]).nice(),
+		"CE":  d3.scale.linear().domain([-500, 0]).nice(),
+		"SOC": d3.scale.linear().domain([0, 100]).nice(),
 		}
+		
 		
 	mySeries = new Array();
 	function createGraph() {
@@ -144,19 +144,19 @@ var w = window,
 				legendDate.style.margin =  ("0 0 0"  + (valuesFontSize/4).toString() + "px") ;
 				legend.appendChild(legendDate);
 				myFinalSeries = new Array();
-				myFinalScales = new Array();
+
 				TH_datastreams.forEach(function(datastreamName){
 					mySeries.forEach(function(thisSeries) {
 						if (thisSeries.name == datastreamName && thisSeries.data.length >= 50){
 							myFinalSeries.push(thisSeries);
-							myFinalScales.push(thisSeries.scale);
-							console.log(thisSeries.name);
+
+							//console.log(thisSeries.name);
 							var thisTemp = [];
 							thisSeries.data.forEach(function(thisData) {
 								allTemps.push(thisData.y);
 								thisTemp.push(thisData.y);
 							});
-							var minVal  = Math.min.apply(Math, thisTemp);
+							var minVal = Math.min.apply(Math, thisTemp);
 							var maxVal = Math.max.apply(Math, thisTemp);
 							var lastValue = thisTemp[thisTemp.length - 1];
 							
@@ -173,7 +173,7 @@ var w = window,
 							
 							var line = document.createElement('li');
 							line.id = 'valuesNowLi';
-							line.style.width = '33%'
+							line.style.width = '50%'
 							
 							var swatch = document.createElement('div');
 							swatch.className = 'swatch';
@@ -186,14 +186,14 @@ var w = window,
 							var Tvalue = document.createElement('div');
 							Tvalue.className = 'Tvalue';
 							Tvalue.id = 'Tvalue_' +  thisSeries.name;
-							console.log( 'Tvalue_' +  thisSeries.name)
+							//console.log( 'Tvalue_' +  thisSeries.name)
 							Tvalue.innerHTML =  lastValue;
 							
 							var AveValue = document.createElement('div');
 							AveValue.className = 'AveValue';
 							AveValue.id = 'AveValue_' +  thisSeries.name;
 							AveValue.style.paddingLeft = (valuesFontSize/4).toString() + "px" ;
-							AveValue.innerHTML =  '(' + minVal  + ' | '  + maxVal + ')';
+							AveValue.innerHTML =  '(' + minVal.toFixed(2)  + ' | '  + maxVal.toFixed(2) + ')';
 							
 							
 							line.appendChild(swatch);
@@ -212,20 +212,7 @@ var w = window,
 					});
 				});
 				
-				// add style for list width
-				//var valuesNowElementLiWidth= Math.floor(x/3 - 4).toString() + "px"  ;
-				//var valuesNowElements = document.querySelectorAll("#valuesNowLi");
-				//for (var i = 0; i < valuesNowElements.length; i++) {
-				//	valuesNowElements[i].style.width = valuesNowElementLiWidth;
-				//}
-				//valuesNowElements.forEach(function(thisValuesNowElement){console.log(thisValuesNowElement);});
-				//console.log(valuesNowElementLiWidth);
-					//thisValuesNowElement.style.width = valuesNowElementLiWidth;
-				
-				
-
-				
-				
+			
 				var minVal  = Math.min.apply(Math, allTemps);
 				
 				// Build Graph
@@ -241,26 +228,15 @@ var w = window,
 						bottom: 0.02,
 						left: 0.02
 						},
-					series: myFinalSeries,
+					series: myFinalSeries
 				});
 			
 				graph.render();
 				
-				myFinalSeries.forEach(function(thisSeries) {
-					new Rickshaw.Graph.Axis.Y.Scaled({
-										scale: thisSeries.scale,
-										graph: graph,
-									});
-							
-				});
-							
-				graph.update();
-				
-				
 				var Hover = Rickshaw.Class.create(Rickshaw.Graph.HoverDetail, {
 					render: function(args) {
 						
-						console.log(args)
+						//console.log(args)
 						utcSeconds = args.detail[0].value.x;
 						var dateString = convertToDate(utcSeconds) ;
 						legendDate.innerHTML = dateString;
@@ -269,7 +245,7 @@ var w = window,
 
 
 							var Tvalue = document.querySelector('#Tvalue_' + d.series.name);
-							console.log(Tvalue);
+							//console.log(Tvalue);
 							Tvalue.innerHTML = d.formattedYValue;
 
 							var dot = document.createElement('div');
@@ -322,22 +298,21 @@ var w = window,
 				yAxis.render();
 
 				// Enable Datapoint Hover Values
-				/*
+				
 				var hoverDetail = new Rickshaw.Graph.HoverDetail({
 					graph: graph,
 					formatter: function(series, x, y) {
 						var swatch = '<span class="detail_swatch" style="background-color: ' + series.color + '"></span>';
-						var content = swatch + series.name + ": " + parseInt(y) + '<br>' ;
+						var content = swatch + series.name + ": " + parseFloat(y) + '<br>' ;
 						return content;
 					}
 				});
-					*/
+					
 					
 				var slider = new Rickshaw.Graph.RangeSlider({
 					graph: graph,
 					element: $('#slider')
 				});
-				
 				
 			}
 		}, 500);
@@ -396,7 +371,7 @@ var w = window,
 										data: points,
 										color: mycolor,
 										renderer : myrenderer,
-										scale: d3.scale.linear().domain(scales[datastream.id]).nice(),
+										scale: scales[datastream.id]
 										
 								});
 								
