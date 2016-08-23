@@ -399,21 +399,21 @@ var w = window,
 			$('#content .duration-day').click(function() {
 				mySeries = []
 				highlight('myButtonDay')
-				updateFeeds(data.id, TH_datastreams, '1day', 900);
+				updateFeeds(data.id, TH_datastreams, '1day', 60);
 				return false;
 			});
 			
 			$('#content .duration-2days').click(function() {
 				mySeries = []
 				highlight('myButton2Day')
-				updateFeeds(data.id, TH_datastreams, '2days', 900);
+				updateFeeds(data.id, TH_datastreams, '2days', 180);
 				return false;
 			});
 			
 			$('#content .duration-week').click(function() {
 				mySeries = []
 				highlight('myButtonWeek')
-				updateFeeds(data.id, TH_datastreams, '1week', 900);
+				updateFeeds(data.id, TH_datastreams, '1week', 660);
 				return false;
 			});
 
