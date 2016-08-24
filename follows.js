@@ -399,7 +399,7 @@ var w = window,
 			$('#content .duration-day').click(function() {
 				mySeries = []
 				highlight('myButtonDay')
-				updateFeeds(data.id, TH_datastreams, '1day', 60);
+				updateFeeds(data.id, TH_datastreams, '1day', 120);
 				return false;
 			});
 			
