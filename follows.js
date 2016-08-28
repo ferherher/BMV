@@ -3,9 +3,9 @@
 	var key		= 'vTij3orvHd4oT7dl31HQXaNFap85row4X9CbqD79tSEV8e7b', // Unique master Xively API key to be used as a default
 		TH_feed	= '2029082394', 
 		TH_datastreams	= ['V','I','SOC','CE'], 
-		dataDuration	= '2days', 
-		dataInterval	= 900;  
-		dataDurationButtonID		= "myButton2Day";
+		dataDuration	= '6hours', 
+		dataInterval	= 60;  
+		dataDurationButtonID		= "myButton6hours";
 		
 // Function Declarations
 var w = window,
@@ -24,7 +24,7 @@ var w = window,
 	document.getElementById("myButton2Day").style.width = buttonWidth;
 	document.getElementById("myButtonWeek").style.width = buttonWidth;
 	document.getElementById("myButtonMonth").style.width = buttonWidth;
-	document.getElementById("myButton90Days").style.width = buttonWidth;
+	document.getElementById("myButton6hours").style.width = buttonWidth;
 
 
 	// adding font size
@@ -334,12 +334,12 @@ var w = window,
 						//var then = new Date();
 						//var updated = new Date;
 						//updated = updated.parseISO(datastream.at);
-						var diff = null;
-						if(duration == '1day') diff = 86400000;
-						if(duration == '2days') diff = 172800000;
-						if(duration == '1week') diff = 604800000;
-						if(duration == '1month') diff = 2628000000;
-						if(duration == '90days') diff = 7884000000;
+						//var diff = null;
+						//if(duration == '1day') diff = 400000;//86400000
+						//if(duration == '2days') diff = 172800000;
+						//if(duration == '1week') diff = 604800000;
+						//if(duration == '1month') diff = 2628000000;
+						//if(duration == '90days') diff = 7884000000;
 						//then.setTime(now.getTime() - diff);
 						//if(updated.getTime() > then.getTime()) {
 
@@ -395,7 +395,16 @@ var w = window,
 
 	function setFeeds(TH_feed, TH_datastreams) {
 		id = TH_feed;
-		xively.feed.history(id, {  duration: "2days", interval: 900 }, function (data) {
+		xively.feed.history(id, {  duration: "1days", interval: 120 }, function (data) {
+
+			$('#content .duration-6hours').click(function() {
+				mySeries = []
+				highlight('myButton6hours')
+				updateFeeds(data.id, TH_datastreams, '6hours', 60);
+				return false;
+			});
+			
+			
 			$('#content .duration-day').click(function() {
 				mySeries = []
 				highlight('myButtonDay')
@@ -406,14 +415,14 @@ var w = window,
 			$('#content .duration-2days').click(function() {
 				mySeries = []
 				highlight('myButton2Day')
-				updateFeeds(data.id, TH_datastreams, '2days', 180);
+				updateFeeds(data.id, TH_datastreams, '2days', 300);
 				return false;
 			});
 			
 			$('#content .duration-week').click(function() {
 				mySeries = []
 				highlight('myButtonWeek')
-				updateFeeds(data.id, TH_datastreams, '1week', 660);
+				updateFeeds(data.id, TH_datastreams, '1week', 900);
 				return false;
 			});
 
@@ -424,12 +433,6 @@ var w = window,
 				return false;
 			});
 
-			$('#content .duration-90').click(function() {
-				mySeries = []
-				highlight('myButton90Days')
-				updateFeeds(data.id, TH_datastreams, '90days', 9600);
-				return false;
-			});
 
 			// Handle Datastreams
 			if(dataDuration != '' && dataInterval != 0) {
@@ -437,7 +440,7 @@ var w = window,
 				updateFeeds(data.id, TH_datastreams, dataDuration, dataInterval);
 
 			} else {
-				updateFeeds(data.id, TH_datastreams, '1day', 900);
+				updateFeeds(data.id, TH_datastreams, '1day', 120);
 			}
 		});
 	}
