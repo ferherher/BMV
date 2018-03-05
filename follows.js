@@ -1,20 +1,29 @@
 (function ( $ ){
 
-	var key		= 'vTij3orvHd4oT7dl31HQXaNFap85row4X9CbqD79tSEV8e7b', // Unique master Xively API key to be used as a default
-		TH_feed	= '2029082394', 
-		TH_datastreams	= ['V','I','SOC','CE'], 
-		dataDuration	= '6hours', 
-		dataInterval	= 60;  
-		dataDurationButtonID		= "myButton6hours";
+	var fieldList= [{field:5,mycolor:'#1760FF', scales:d3.scale.linear().domain([0, 100]).nice() , id:'SOC'}, 
+					{field:4,mycolor:'#48995C', scales:d3.scale.linear().domain([-500, 0]).nice(), id:'CE'},
+					{field:2,mycolor:'#2F9C9E', scales:d3.scale.linear().domain([-100, 100]).nice(), id:'I'},   
+					{field:1,mycolor:'#FFD462', scales:d3.scale.linear().domain([9, 17]).nice(), id:'V'}
+					];
+	var mySeries = new Array();
+	
+	// get TSid and TSkey from url
+    var parameters = location.search.substring(1).split("&");
+    var temp = parameters[0].split("=");
+    var TSid = unescape(temp[1]);
+    temp = parameters[1].split("=");
+    var TSkey = unescape(temp[1]);
+	var lastLogDate = new Date();
+	var firstLogDate = new Date();
 		
-// Function Declarations
-var w = window,
-    d = document,
-    e = d.documentElement,
-    g = d.getElementsByTagName('body')[0],
-    x = w.innerWidth || e.clientWidth || g.clientWidth,
-    y = w.innerHeight|| e.clientHeight|| g.clientHeight,
-	buttonWidth =   Math.floor(x/5 -1).toString() + "px"  ;
+	// Function Declarations
+	var w = window,
+		d = document,
+		e = d.documentElement,
+		g = d.getElementsByTagName('body')[0],
+		x = w.innerWidth || e.clientWidth || g.clientWidth,
+		y = w.innerHeight|| e.clientHeight|| g.clientHeight,
+		buttonWidth =   Math.floor(x/5 -1).toString() + "px"  ;
 	
 	document.getElementById("main").style.width = x.toString() + "px" ;
 	document.getElementById("main").style.height = y.toString() + "px" ;
@@ -29,35 +38,12 @@ var w = window,
 
 	// adding font size
 	var legendElement = document.querySelector("#legend");
-	var valuesFontSize = Math.min(50,Math.floor(x/26));
-	legendElement.style.height =  (x*0.065*2+valuesFontSize).toString() + "px" ;
+	var valuesFontSize = Math.floor(x/26);
+	legendElement.style.height =  (x*0.065*(Math.ceil(fieldList.length/3))+valuesFontSize).toString() + "px" ;
 	legendElement.style.fontSize =  valuesFontSize.toString() + "px" ;
-	
 
-	// Graph Annotations
-	function addAnnotation(force) {
-		if (messages.length > 0 && (force || Math.random() >= 0.95)) {
-			annotator.add(seriesData[2][seriesData[2].length-1].x, messages.shift());
-		}
-	}
-	
-	// Add One (1) Day to Date Object
-	Date.prototype.addDays = function (d) {
-		if (d) {
-			var t = this.getTime();
-			t = t + (d * 86400000);
-			this.setTime(t);
-		}
-	};
 
-	// Subtract One (1) Day to Date Object
-	Date.prototype.subtractDays = function (d) {
-		if (d) {
-			var t = this.getTime();
-			t = t - (d * 86400000);
-			this.setTime(t);
-		}
-	};
+	
 	Date.prototype.format=function(e){
 			var t="";
 			var n=Date.replaceChars;
@@ -83,19 +69,6 @@ var w = window,
 		}
 
 
-	// Parse Xively ISO Date Format to Date Object
-	Date.prototype.parseISO = function(iso){
-		var stamp= Date.parse(iso);
-		if(!stamp) throw iso +' Unknown date format';
-		return new Date(stamp);
-	}
-
-	// Set xively API Key
-	function setApiKey(key) {
-		xively.setKey(key);
-	}
-
-	
 	var buttonClicked = null;
 	function highlight(id) {
 		if(buttonClicked != null)
@@ -114,27 +87,23 @@ var w = window,
 		var dateString = myDate.format('D, d M y, H:i');
 		return dateString;
 		}
+	
+
 		
-	var scales = {
-		"V":   d3.scale.linear().domain([9, 17]).nice(),
-		"I":   d3.scale.linear().domain([-100, 100]).nice(),
-		"CE":  d3.scale.linear().domain([-500, 0]).nice(),
-		"SOC": d3.scale.linear().domain([0, 100]).nice(),
-		}
-		
-		
-	mySeries = new Array();
 	function createGraph() {
-		var interval = setInterval(function(){
-			if(mySeries.length == TH_datastreams.length) {
-				clearInterval(interval);
+		//console.log('starting createGraph');
+		// wait for the request to arrive before continuing
+		var myInterval = setInterval(function(){
+			if(mySeries.length == fieldList.length) {
+				clearInterval(myInterval);
+				
+				
 				// Initialize Graph DOM Element
 				$('#content .graph-group .graph').empty();
 				$('#content .graph-group .legendSwitch').empty();
 				$('#content .legend').empty();
 				
-				var valuesNow 
-				var allTemps = [];
+				var allMins = [];
 				
 				
 				var legend = document.querySelector('#legend');
@@ -142,108 +111,112 @@ var w = window,
 				
 				legendDate.className = 'legendDate';
 				legendDate.style.margin =  ("0 0 0"  + (valuesFontSize/4).toString() + "px") ;
-				legend.appendChild(legendDate);
-				myFinalSeries = new Array();
 
-				TH_datastreams.forEach(function(datastreamName){
-					mySeries.forEach(function(thisSeries) {
-						if (thisSeries.name == datastreamName && thisSeries.data.length >= 50){
-							myFinalSeries.push(thisSeries);
 
-							//console.log(thisSeries.name);
-							var thisTemp = [];
-							thisSeries.data.forEach(function(thisData) {
-								allTemps.push(thisData.y);
-								thisTemp.push(thisData.y);
-							});
-							var minVal = Math.min.apply(Math, thisTemp);
-							var maxVal = Math.max.apply(Math, thisTemp);
-							var lastValue = thisTemp[thisTemp.length - 1];
-							
-							var lastDate = new Date(0);
-							var utcSeconds = thisSeries.data[thisSeries.data.length -1].x;
-
-							var dateString = convertToDate(utcSeconds) ;
+				mySeries.forEach(function(thisSeries) {
+					//console.log(thisSeries.name + ' length '+ thisSeries.data.length);	
+					if (thisSeries.data.length >= 8){
+					
+						allMins.push(thisSeries.minmax.min);
+						var lastValue  = thisSeries.data[thisSeries.data.length -1].y;
 						
-							
-							legendDate.innerHTML = dateString;
-							var thisSeriesName =  thisSeries.name;
-							if (thisSeriesName == 'BackCabin'){thisSeriesName = 'Bc'}
-							else{thisSeriesName = thisSeriesName.substring(0,2) }
-							
-							var line = document.createElement('li');
-							line.id = 'valuesNowLi';
-							line.style.width = '50%'
-							
-							var swatch = document.createElement('div');
-							swatch.className = 'swatch';
-							swatch.style.backgroundColor = thisSeries.color;
-							swatch.innerHTML =  thisSeriesName;
-							swatch.style.width  = Math.min(50,(x*0.05).toString()) + "px" ;
-							swatch.style.height = Math.min(50,(x*0.05).toString()) + "px" ;
-							
-							
-							var Tvalue = document.createElement('div');
-							Tvalue.className = 'Tvalue';
-							Tvalue.id = 'Tvalue_' +  thisSeries.name;
-							//console.log( 'Tvalue_' +  thisSeries.name)
-							Tvalue.innerHTML =  lastValue;
-							
-							var AveValue = document.createElement('div');
-							AveValue.className = 'AveValue';
-							AveValue.id = 'AveValue_' +  thisSeries.name;
-							AveValue.style.paddingLeft = (valuesFontSize/4).toString() + "px" ;
-							AveValue.innerHTML =  '(' + minVal.toFixed(2)  + ' | '  + maxVal.toFixed(2) + ')';
-							
-							
-							line.appendChild(swatch);
-							line.appendChild(Tvalue);
-							line.appendChild(AveValue);
-							
-							legend.appendChild(line);
-							
-							
-							$('#content .valuesNow').append('<li id=\"valuesNowLi\" style=\"width: 33%;\"><span style=\"color: ' + thisSeries.color + ';padding-right: 2px; \">' + thisSeriesName +':</span>' + lastValue + '<span style=\"font-size: 0.8em;\"> (' + minVal  + ' | '  + maxVal + ')</span></li>');
-							
-							//var valueNow =  '<li><span style=\"color: ' + thisSeries.color + '; \">' + thisSeries.name.substring(0,2) +': </span>'  + lastValue  + '</li>';
-							
-							
-						};
-					});
+						var utcSeconds = thisSeries.data[thisSeries.data.length -1].x;
+						var dateString = convertToDate(utcSeconds) ;
+						
+						legendDate.innerHTML = dateString;
+						
+						var line = document.createElement('li');
+						line.id = 'valuesNowLi';
+						line.style.width = '33%'
+						
+						var swatch = document.createElement('div');
+						swatch.className = 'swatch';
+						swatch.style.backgroundColor = thisSeries.color;
+						swatch.innerHTML =  thisSeries.name;
+						swatch.style.width  = (x*0.05).toString() + "px" ;
+						swatch.style.height = (x*0.05).toString() + "px" ;
+						
+						
+						var Tvalue = document.createElement('div');
+						Tvalue.className = 'Tvalue';
+						Tvalue.id = 'Tvalue_' +  thisSeries.name;
+						//console.log( 'Tvalue_' +  thisSeries.name)
+						Tvalue.innerHTML =  lastValue;
+						
+						var AveValue = document.createElement('div');
+						AveValue.className = 'AveValue';
+						AveValue.id = 'AveValue_' +  thisSeries.name;
+						AveValue.style.paddingLeft = (valuesFontSize/4).toString() + "px" ;
+						AveValue.innerHTML =  '(' + thisSeries.minmax.min  + ' | '  + thisSeries.minmax.max + ')';
+						
+						
+						line.appendChild(swatch);
+						line.appendChild(Tvalue);
+						line.appendChild(AveValue);
+						
+						legend.insertBefore(line, legend.firstChild);
+						
+									
+					};
 				});
 				
-			
-				var minVal  = Math.min.apply(Math, allTemps);
+				//console.log( 'allmins ' +  allMins)
+				// highlight date if last log is not from the current day
+				currentDay = new Date().getDate();
+				lastLogDay = lastLogDate.getDate();
+				if(currentDay != lastLogDay)
+					{
+					legendDate.style.background =  "#e9002f";
+					};
+					
 				
+				legend.insertBefore(legendDate, legend.firstChild);
+
+
+				//console.log( [{x:firstLogDate, y:0}, {x:lastLogDate, y:0}]);
+				var minVal  = Math.min.apply(Math, allMins.filter(isFinite));
+				/*
+				mySeries.unshift({
+						name: 'minus0',
+						data: [{x:firstLogDate.getTime()/1000.0, y:minVal - 1}, {x:lastLogDate.getTime()/1000.0, y:minVal - 1}],
+						color: '#74AFE3',
+						renderer : 'stack',
+						opacity: 0.1
+						});
+				*/
+						
+				//console.log('minval '+ minVal);
 				// Build Graph
 				var graph = new Rickshaw.Graph( {
 					element: document.querySelector('#graph'),
 					width: x*0.9,
 					height: y*0.5,
-					renderer: 'line',
+					renderer: 'multi',
 					interpolation: 'linear',
+					//min: minVal - 1,
 					padding: {
 						top: 0.02,
 						right: 0.02,
 						bottom: 0.02,
 						left: 0.02
 						},
-					series: myFinalSeries
+					series: mySeries
 				});
-			
+				
 				graph.render();
+				
 				
 				var Hover = Rickshaw.Class.create(Rickshaw.Graph.HoverDetail, {
 					render: function(args) {
 						
 						//console.log(args)
-						utcSeconds = args.detail[0].value.x;
+						utcSeconds = args.detail[1].value.x;
 						var dateString = convertToDate(utcSeconds) ;
 						legendDate.innerHTML = dateString;
 						
 						args.detail.sort(function(a, b) { return a.order - b.order }).forEach( function(d) {
 
-
+							if(d.series.name != 'minus0'){
 							var Tvalue = document.querySelector('#Tvalue_' + d.series.name);
 							//console.log(Tvalue);
 							Tvalue.innerHTML = d.formattedYValue;
@@ -258,6 +231,7 @@ var w = window,
 							dot.className = 'dot active';
 
 							this.show();
+							};
 
 						}, this );
 						}
@@ -296,160 +270,144 @@ var w = window,
 				});
 				
 				yAxis.render();
-
+				
+				/*
 				// Enable Datapoint Hover Values
 				
 				var hoverDetail = new Rickshaw.Graph.HoverDetail({
 					graph: graph,
 					formatter: function(series, x, y) {
 						var swatch = '<span class="detail_swatch" style="background-color: ' + series.color + '"></span>';
-						var content = swatch + series.name + ": " + parseFloat(y) + '<br>' ;
+						var content = swatch + series.name + ": " + parseInt(y) + '<br>' ;
 						return content;
 					}
 				});
 					
-					
+				
 				var slider = new Rickshaw.Graph.RangeSlider({
 					graph: graph,
 					element: $('#slider')
 				});
+				*/
 				
 			}
 		}, 500);
 	}
 
-
+	function updateFeeds(numberOfDays,interval) {
+		var jsonString = 'https://www.thingspeak.com/channels/'+TSid+'/feeds.json?callback=?&amp;offset=0&amp;round=1;status=0;metadata=0;location=0;results='+numberOfDays*24*12+';key='+TSkey
+		if(interval != 0) {jsonString = jsonString+';median='+interval};
+		//console.log(jsonString);
 		
+		$.getJSON(jsonString, function(data) 
+		{
+
+		if(data != -1){
+			//console.log( data.feeds.length )
+			
+			for (var fieldIndex=0; fieldIndex<fieldList.length; fieldIndex++)  // iterate through each field
+				{
+				fieldList[fieldIndex].data =[];
+				var thisTemp = [];
+				for (var h=0; h<data.feeds.length; h++)  // iterate through each feed (data point)
+					{
+					var p = []
+					var fieldStr = "data.feeds["+h+"].field"+fieldList[fieldIndex].field;
+					var v = eval(fieldStr);
 	
-	function updateFeeds(feedId, datastreamIds, duration, interval) {
-
-		xively.feed.get(feedId, function(feedData) {
-
-			if(feedData.datastreams) {
-
-				feedData.datastreams.forEach(function(datastream) {
-
-					if(datastreamIds && datastreamIds != '' && datastreamIds.indexOf(datastream.id) >= 0) {
-						//var now = new Date();
-						//var then = new Date();
-						//var updated = new Date;
-						//updated = updated.parseISO(datastream.at);
-						//var diff = null;
-						//if(duration == '1day') diff = 400000;//86400000
-						//if(duration == '2days') diff = 172800000;
-						//if(duration == '1week') diff = 604800000;
-						//if(duration == '1month') diff = 2628000000;
-						//if(duration == '90days') diff = 7884000000;
-						//then.setTime(now.getTime() - diff);
-						//if(updated.getTime() > then.getTime()) {
-
-							
-						
-							xively.datastream.history(feedId, datastream.id, {duration: duration, interval: interval, limit: 1000}, function(datastreamData) {
-							points = [];
-								// Historical Datapoints
-								if(datastreamData.datapoints) {
-
-									// Add Each Datapoint to Array
-									datastreamData.datapoints.forEach(function(datapoint) {
-										points.push({x: new Date(datapoint.at).getTime()/1000.0, y: parseFloat(datapoint.value)});
-									});
-								}
-								var mycolor = 'steelblue'
-								var myrenderer = 'line'
-								if(datastream.id ==  'V') {mycolor = '#FFD462'; myrenderer = 'line'}
-								if(datastream.id ==  'I') {mycolor = '#2F9C9E'; myrenderer = 'line'}
-								if(datastream.id ==  'P') {mycolor = '#FC7D49'; myrenderer = 'line'}
-								if(datastream.id ==  'CE') {mycolor = '#48995C'; myrenderer = 'line'}
-								if(datastream.id ==  'SOC') {mycolor = '#1760FF'; myrenderer = 'line'}
-								//B82A64					
-								
-								
-								// Add Datapoints Array to Graph Series Array
-								mySeries.push({
-										name:datastream.id,
-										data: points,
-										color: mycolor,
-										renderer : myrenderer,
-										scale: scales[datastream.id]
-										
-								});
-								
-								
-								console.log('Datastream requested! (' + datastream.id + ')');
-							});
-						//} else {
-								//$('#content .datastreams.datastreams .graphWrapper').html('<div class="alert alert-box no-info">Sorry, this datastream does not have any associated data.</div>');
-						//}
-					} else {
-								console.log('Datastream not requested! (' + datastream.id + ')');
+					p[0] = new Date(data.feeds[h].created_at).getTime()/1000.0
+					p[1] = parseFloat(v);
+					thisTemp.push(p[1]);
+					// if a numerical value exists add it
+					if (!isNaN(parseInt(v))) { fieldList[fieldIndex].data.push({x:p[0], y:p[1]}); }
+					else {fieldList[fieldIndex].data.push({x:p[0], y:null});}
 					}
-				// Create Datastream UI
-				//$('.datastreams' ).empty();
-				//$('.datastreams' ).remove();
-				});
-				createGraph();
+				var minVal  = Math.min.apply(Math, thisTemp.filter(isFinite));
+				var maxVal = Math.max.apply(Math, thisTemp.filter(isFinite));
+				fieldList[fieldIndex].name = eval("data.channel.field"+fieldList[fieldIndex].field);
+				fieldList[fieldIndex].minmax = {min:minVal, max:maxVal};
+				};
+				
+				
+			for (var fieldIndex=0; fieldIndex<fieldList.length; fieldIndex++)
+				{
+					var mycolor = 'steelblue';
+					var myrenderer = 'line';
+
+					// Add Datapoints Array to Graph Series Array
+					mySeries.push({
+							name: fieldList[fieldIndex].name.substring(0,2),
+							data: fieldList[fieldIndex].data,
+							color: fieldList[fieldIndex].mycolor,
+							renderer : myrenderer,
+							minmax: fieldList[fieldIndex].minmax,
+							scale: fieldList[fieldIndex].scales
+					});
+				};
+			//draw rectangle on minus 0
+			lastLogDate =  new Date(data.feeds[data.feeds.length - 1].created_at);
+			firstLogDate = new Date(data.feeds[0].created_at);
+			
+			// Add Datapoints Array to Graph Series Array
+
+
+			} else {
+						console.log('no data from request!!');
 			}
-		});
-	}
+			});
+					//console.log(mySeries);
+			createGraph();
 
-	function setFeeds(TH_feed, TH_datastreams) {
-		id = TH_feed;
-		xively.feed.history(id, {  duration: "1days", interval: 120 }, function (data) {
 
+		};
+
+	function setFeeds() {
+		
 			$('#content .duration-6hours').click(function() {
 				mySeries = []
 				highlight('myButton6hours')
-				updateFeeds(data.id, TH_datastreams, '6hours', 60);
+				updateFeeds(0.5,0);
 				return false;
 			});
-			
-			
+			 
 			$('#content .duration-day').click(function() {
 				mySeries = []
 				highlight('myButtonDay')
-				updateFeeds(data.id, TH_datastreams, '1day', 120);
+				updateFeeds(1,0);
 				return false;
 			});
 			
 			$('#content .duration-2days').click(function() {
 				mySeries = []
 				highlight('myButton2Day')
-				updateFeeds(data.id, TH_datastreams, '2days', 300);
+				updateFeeds(2,0);
 				return false;
 			});
 			
 			$('#content .duration-week').click(function() {
 				mySeries = []
 				highlight('myButtonWeek')
-				updateFeeds(data.id, TH_datastreams, '1week', 900);
+				updateFeeds(7,30);
 				return false;
 			});
 
 			$('#content .duration-month').click(function() {
 				mySeries = []
 				highlight('myButtonMonth')
-				updateFeeds(data.id, TH_datastreams, '1month', 2400);
+				updateFeeds(30,60);
 				return false;
 			});
 
 
-			// Handle Datastreams
-			if(dataDuration != '' && dataInterval != 0) {
-				highlight(dataDurationButtonID)
-				updateFeeds(data.id, TH_datastreams, dataDuration, dataInterval);
+			// initial duration to 2 days
+			highlight('myButtonDay')
+			updateFeeds(1,0);
 
-			} else {
-				updateFeeds(data.id, TH_datastreams, '1day', 120);
-			}
-		});
 	}
 // END Function Declarations
-
 // BEGIN Initialization
 
-	setApiKey(key);
-	setFeeds(TH_feed,TH_datastreams);
+	setFeeds();
 
 // END Initialization
 
